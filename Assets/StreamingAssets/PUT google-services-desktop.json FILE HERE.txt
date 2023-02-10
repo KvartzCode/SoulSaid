@@ -1,0 +1,3 @@
+Put the "google-services-desktop.json" file in the same folder as this file.
+
+It's ignored in .gitignore since it holds the authentication keys to the firebase DB.
