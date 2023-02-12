@@ -10,7 +10,7 @@ namespace DBTables
         public float Latitude;
         public float Longitude;
         public string UserID;
-        public DateTime Date = DateTime.Now;
+        public DateTime DateCreated = DateTime.Now;
 
 
         public MessageLocation() { }
@@ -21,7 +21,7 @@ namespace DBTables
             Longitude = locationInfo.longitude;
             Latitude = locationInfo.latitude;
             UserID = user;
-            Date = date != null ? (DateTime)date : Date;
+            DateCreated = date != null ? (DateTime)date : DateCreated;
         }
     }
 }

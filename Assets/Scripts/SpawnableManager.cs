@@ -41,6 +41,11 @@ public class SpawnableManager : MonoBehaviour
     GameObject spawnedObject;
     LocationInfo lastLocationCheckpoint;
 
+    [SerializeField, ReadOnly]
+    DBAPI db;
+
+    public MessageLocation message = new MessageLocation();
+
 
     void Start()
     {
@@ -48,6 +53,7 @@ public class SpawnableManager : MonoBehaviour
             cam = Camera.main;
 
         spawnedObject = null;
+        db = GetComponent<DBAPI>();
     }
 
     void OnEnable()
@@ -63,7 +69,11 @@ public class SpawnableManager : MonoBehaviour
     void Update()
     {
         ExampleSpawnMethod();
+
+        if (Input.GetKeyDown(KeyCode.F))
+            db.SaveMessage("Messages", message);
     }
+
 
     void OnLocationChanged(LocationInfo info)
     {
@@ -78,7 +88,7 @@ public class SpawnableManager : MonoBehaviour
         LocationHandler.Instance.AddToStatusText("Location changed: " + JsonConvert.SerializeObject(info),
             LogLevel.Warning);
 
-        var nearbyLocations = LocationHandler.Instance.GetNearbyLocations(detectionDistance);
+        var nearbyLocations = GetNearbyLocations(info, detectionDistance);
 
         foreach (var location in nearbyLocations)
         {
@@ -89,6 +99,24 @@ public class SpawnableManager : MonoBehaviour
             locations.Add(new CustomLocation(location));
         }
         Debug.LogWarning(JsonConvert.SerializeObject(locations));
+    }
+
+    public List<MessageLocation> GetNearbyLocations(LocationInfo info, float maxDistance)
+    {
+        //var locations = this.locations; // change this to a firebase call ASAP!
+        //var nearbyLocations = new List<MessageLocation>();
+
+        //foreach (var location in locations)
+        //{
+        //    var distance = lastKnownLocation.CalculateDistance(location.Latitude, location.Longitude);
+
+        //    if (distance < maxDistanceInMetres)
+        //        nearbyLocations.Add(location);
+        //}
+
+        //return nearbyLocations;
+
+        return db.GetMessages(info, maxDistance);
     }
 
     void SpawnNearby()

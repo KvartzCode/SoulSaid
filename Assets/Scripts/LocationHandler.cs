@@ -66,21 +66,21 @@ public class LocationHandler : MonoBehaviour
         timer += Time.deltaTime;
     }
 
-    public List<MessageLocation> GetNearbyLocations(float maxDistanceInMetres)
-    {
-        var locations = this.locations; // change this to a firebase call ASAP!
-        var nearbyLocations = new List<MessageLocation>();
+    //public List<MessageLocation> GetNearbyLocations(float maxDistanceInMetres)
+    //{
+    //    var locations = this.locations; // change this to a firebase call ASAP!
+    //    var nearbyLocations = new List<MessageLocation>();
 
-        foreach (var location in locations)
-        {
-            var distance = lastKnownLocation.CalculateDistance(location.Latitude, location.Longitude);
+    //    foreach (var location in locations)
+    //    {
+    //        var distance = lastKnownLocation.CalculateDistance(location.Latitude, location.Longitude);
 
-            if (distance < maxDistanceInMetres)
-                nearbyLocations.Add(location);
-        }
+    //        if (distance < maxDistanceInMetres)
+    //            nearbyLocations.Add(location);
+    //    }
 
-        return nearbyLocations;
-    }
+    //    return nearbyLocations;
+    //}
 
     public void AddToStatusText(string text, LogLevel logLevel = LogLevel.Info)
     {
