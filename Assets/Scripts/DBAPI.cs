@@ -6,6 +6,7 @@ using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
+using Newtonsoft.Json;
 using UnityEngine;
 
 
@@ -105,7 +106,28 @@ public class DBAPI : MonoBehaviour
 
     public void SaveMessage(string path, MessageLocation message)
     {
-        SaveData(path, JsonUtility.ToJson(message));
+        var msg = JsonConvert.SerializeObject(message);
+        SaveData(path, msg);
+    }
+
+    public void TestLoad()
+    {
+        var db = FirebaseDatabase.DefaultInstance;
+
+        db.RootReference.Child("Messages").Child("-NO9VUikLmnr0TTPA-0d").GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.Exception != null)
+            {
+                Debug.LogError(task.Exception);
+            }
+
+            DataSnapshot snap = task.Result;
+            Debug.Log(snap.GetRawJsonValue());
+
+            var test = JsonConvert.DeserializeObject<MessageLocation>(snap.GetRawJsonValue());
+            LocationHandler.Instance.AddToStatusText("\n"+test.Text);
+            LocationHandler.Instance.AddToStatusText("\n"+test.DateCreated.ToString());
+        });
     }
 
     /// <summary>
