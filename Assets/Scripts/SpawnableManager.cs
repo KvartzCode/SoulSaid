@@ -103,19 +103,6 @@ public class SpawnableManager : MonoBehaviour
 
     public List<MessageLocation> GetNearbyLocations(LocationInfo info, float maxDistance)
     {
-        //var locations = this.locations; // change this to a firebase call ASAP!
-        //var nearbyLocations = new List<MessageLocation>();
-
-        //foreach (var location in locations)
-        //{
-        //    var distance = lastKnownLocation.CalculateDistance(location.Latitude, location.Longitude);
-
-        //    if (distance < maxDistanceInMetres)
-        //        nearbyLocations.Add(location);
-        //}
-
-        //return nearbyLocations;
-
         return db.GetMessages(info, maxDistance);
     }
 
