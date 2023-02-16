@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DBTables;
+using Firebase.Database;
+using Firebase.Extensions;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
@@ -13,23 +15,31 @@ using URandom = UnityEngine.Random;
 public class CustomLocation
 {
     public MessageLocation locationObject;
-    public bool isSpawned = false;
+    public GameObject inGameObject;
+    public bool isSpawned = false; //does nothing atm, may remove later.
 
-    public CustomLocation(MessageLocation messageLocation, bool isSpawned = false)
+
+    public CustomLocation(MessageLocation messageLocation, GameObject gameObject, bool isSpawned = false)
     {
         locationObject = messageLocation;
+        inGameObject = gameObject;
         this.isSpawned = isSpawned;
     }
 }
 
 public class SpawnableManager : MonoBehaviour
 {
+    public static SpawnableManager Instance { get; private set; }
+    public InstanceState state;
+
     public bool isSpawnModeActive = false;
 
     [SerializeField, Tooltip("How many metres from the device to look for saved messages")]
     float detectionDistance = 50;
     [SerializeField, Tooltip("Distance in metres the device needs to travel before looking for new messages")]
     float updateDistance = 50;
+    [SerializeField, Tooltip("How many new messages to spawn in close to device when conditions are met")]
+    float maxNewInstancedMessages = 10;
 
     [SerializeField] Camera cam;
 
@@ -41,39 +51,71 @@ public class SpawnableManager : MonoBehaviour
     GameObject spawnedObject;
     LocationInfo lastLocationCheckpoint;
 
-    [SerializeField, ReadOnly]
-    DBAPI db;
+    //[SerializeField, ReadOnly]
+    //DBAPI db;
+    FirebaseDatabase db;
 
-    public MessageLocation message = new MessageLocation();
+    public MessageLocation message = new MessageLocation(); //only for testing purposes
 
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+            return;
+        }
+
+        state = InstanceState.Initializing;
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     void Start()
     {
         if (cam == null)
             cam = Camera.main;
 
+        db = FirebaseDatabase.DefaultInstance;
+
         spawnedObject = null;
-        db = GetComponent<DBAPI>();
-    }
-
-    void OnEnable()
-    {
+        //db = GetComponent<DBAPI>();
         LocationHandler.Instance.onLocationChanged += OnLocationChanged;
+        StartCoroutine(WaitForFirstVerifiedLocation());
     }
 
-    void OnDisable()
+    private void OnDestroy()
     {
         LocationHandler.Instance.onLocationChanged -= OnLocationChanged;
+        StopAllCoroutines();
     }
 
     void Update()
     {
         ExampleSpawnMethod();
 
-        if (Input.GetKeyDown(KeyCode.F))
-            db.SaveMessage("Messages", message);
+        if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
+            GetMessagesFromDB();
+            //db.SaveMessage("Messages", message);
     }
 
+
+    IEnumerator WaitForFirstVerifiedLocation()
+    {
+        //yield return new WaitForSecondsRealtime(5);
+        int tries = 30;
+        while (!lastLocationCheckpoint.IsZero() && tries-- > 0)
+        {
+            yield return new WaitForSecondsRealtime(1);
+        }
+
+        if (tries > 0)
+            state = InstanceState.Running;
+        else
+            state = InstanceState.Stopped;
+
+        GameManager.Instance.HandlerOrManagerStateChanged();
+    }
 
     void OnLocationChanged(LocationInfo info)
     {
@@ -87,30 +129,21 @@ public class SpawnableManager : MonoBehaviour
 
         LocationHandler.Instance.AddToStatusText("Location changed: " + JsonConvert.SerializeObject(info),
             LogLevel.Warning);
+    }
 
-        var nearbyLocations = GetNearbyLocations(info, detectionDistance);
-
-        foreach (var location in nearbyLocations)
+    GameObject SpawnNearby()
+    {
+        if (isSpawnModeActive)
+            return null;
+        else
         {
-            if (locations.Any(l => l.locationObject == location))
-                continue;
+            float randomDistance = URandom.Range(5f, 10f);
+            Vector3 randomPos = cam.transform.position.GetRandomPointOnHorizontalCircle(randomDistance);
+            GameObject newObject = Instantiate(spawnablePrefab, randomPos, Quaternion.identity);
+            spawnedObject = newObject;
 
-            SpawnNearby();
-            locations.Add(new CustomLocation(location));
+            return newObject;
         }
-        Debug.LogWarning(JsonConvert.SerializeObject(locations));
-    }
-
-    public List<MessageLocation> GetNearbyLocations(LocationInfo info, float maxDistance)
-    {
-        return db.GetMessages(info, maxDistance);
-    }
-
-    void SpawnNearby()
-    {
-        float randomDistance = URandom.Range(5f, 10f);
-        Vector3 randomPos = cam.transform.position.GetRandomPointOnHorizontalCircle(randomDistance);
-        SpawnPrefab(randomPos);
     }
 
     void ExampleSpawnMethod()
@@ -149,9 +182,48 @@ public class SpawnableManager : MonoBehaviour
         }
     }
 
-    private void SpawnPrefab(Vector3 spawnPosition)
+    public void GetMessagesFromDB()
     {
-        if (isSpawnModeActive)
-            spawnedObject = Instantiate(spawnablePrefab, spawnPosition, Quaternion.identity);
+        Debug.LogWarning("PRESSED F IN CHAT!");
+
+        db.RootReference.Child("Messages").GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.Exception != null)
+            {
+                Debug.LogError(task.Exception);
+                return;
+            }
+
+            DataSnapshot snap = task.Result;
+
+            if (task.Exception != null)
+                Debug.LogWarning(task.Exception);
+
+            var nearbyLocations = new List<MessageLocation>();
+
+            foreach (var item in task.Result.Children)
+            {
+                MessageLocation message = JsonUtility.FromJson<MessageLocation>(item.GetRawJsonValue());
+
+                if (lastLocationCheckpoint.CalculateDistance(message.Latitude, message.Longitude) > detectionDistance)
+                {
+                    nearbyLocations.Add(message);
+
+                    if (nearbyLocations.Count < maxNewInstancedMessages)
+                        break;
+                }
+            }
+            Debug.LogWarning(JsonConvert.SerializeObject(nearbyLocations));
+
+            foreach (var location in nearbyLocations)
+            {
+                if (locations.Any(l => l.locationObject == location))
+                    continue;
+
+                var newLocation = SpawnNearby();
+                if (newLocation != null)
+                    locations.Add(new CustomLocation(location, newLocation, true));
+            }
+        });
     }
 }

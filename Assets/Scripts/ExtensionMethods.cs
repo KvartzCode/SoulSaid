@@ -1,7 +1,13 @@
+using System.Collections.Generic;
+using System.Linq;
+using System;
 using UnityEngine;
+using URandom = UnityEngine.Random;
 
 public static class ExtensionMethods
 {
+    #region LocationInfo
+
     /// <summary>
     /// Compares all properties of <see cref="LocationInfo"/>.
     /// </summary>
@@ -46,6 +52,15 @@ public static class ExtensionMethods
         return d;
     }
 
+    public static bool IsZero(this LocationInfo info)
+    {
+        return info.latitude != 0 || info.longitude != 0; // returns true if both values are 0.
+    }
+
+    #endregion
+
+    #region Vector
+
     /// <summary>
     /// Returns a random point on a circle around current vector.
     /// </summary>
@@ -54,12 +69,12 @@ public static class ExtensionMethods
     /// <returns></returns>
     public static Vector2 GetRandomPointOnCircle(this Vector2 point, float distance)
     {
-        var randomPointOnCircle = Random.insideUnitCircle.normalized;
+        var randomPointOnCircle = URandom.insideUnitCircle.normalized;
         int counter = 10000;
 
         while(randomPointOnCircle == Vector2.zero && counter > 0)
         {
-            randomPointOnCircle = Random.insideUnitCircle.normalized;
+            randomPointOnCircle = URandom.insideUnitCircle.normalized;
         }
 
         //P=(pos)+(normalized direction)*distance
@@ -75,10 +90,33 @@ public static class ExtensionMethods
     /// <returns></returns>
     public static Vector3 GetRandomPointOnHorizontalCircle(this Vector3 point, float distance)
     {
-        var randomPointOnCircle = Random.onUnitSphere * distance;
+        var randomPointOnCircle = URandom.onUnitSphere * distance;
         Vector3 randomPoint = point + randomPointOnCircle;
         Vector3 newPoint = new Vector3(randomPoint.x, point.y, randomPoint.z);
 
         return newPoint;
     }
+
+    #endregion
+
+    #region Enums
+
+    /// <remarks>NOTE!<br/>
+    /// Even if any of the provided enum types does not match with the compared enum type, the method will compare the values without breaking.
+    /// </remarks>
+    /// <summary>
+    /// Matches enum values with comparing enum.
+    /// </summary>
+    /// <param name="value">enum to match</param>
+    /// <param name="values">enums to match with compared enum</param>
+    /// <returns>true if all values match, otherwise false.</returns>
+    public static bool EqualsAll(this Enum value, params Enum[] values)
+    {
+        if (values.Any(s => s.GetType() != value.GetType()))
+            Debug.LogWarning("WARNING! One or more of the provided Enums is not of the same type as the compared Enum!");
+
+        return values.All(s => s == value);
+    }
+
+    #endregion
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,8 @@ using UnityEngine;
 
 public class DBAPI : MonoBehaviour
 {
+    public delegate void OnSaveDelegate(string resultMessage);
+
     FirebaseAuth auth;
     FirebaseDatabase db;
 
@@ -93,40 +96,116 @@ public class DBAPI : MonoBehaviour
     #endregion
 
 
-    private void SaveData(string path, string data)
+    public void SaveMessage(string path, string text, OnSaveDelegate onSaveDelegate = null)
     {
-        db.RootReference.Child(path).Push().SetRawJsonValueAsync(data).ContinueWithOnMainThread(task =>
+        LocationInfo location = LocationHandler.Instance.lastKnownLocation;
+        var message = new MessageLocation(auth.CurrentUser.UserId, text, location, DateTime.Now);
+        var msg = JsonConvert.SerializeObject(message);
+
+        SaveData(path, msg, onSaveDelegate);
+    }
+
+    private void SaveData(string path, string data, OnSaveDelegate onSaveDelegate = null)
+    {
+        DatabaseReference dbRef = db.RootReference.Child(path).Push();
+        dbRef.SetRawJsonValueAsync(data).ContinueWithOnMainThread(task =>
         {
             if (task.Exception != null)
                 Debug.LogWarning(task.Exception);
 
             Debug.Log($"Data saved to '{path}'");
+            path = $"{path}/{dbRef.Key}/DateCreated";
+            SaveTimeStamp(path, onSaveDelegate);
         });
     }
 
-    public void SaveMessage(string path, MessageLocation message)
+    private void SaveTimeStamp(string path, OnSaveDelegate onSaveDelegate = null)
     {
-        var msg = JsonConvert.SerializeObject(message);
-        SaveData(path, msg);
+        db.RootReference.Child(path).SetValueAsync(ServerValue.Timestamp).ContinueWithOnMainThread(task =>
+        {
+            if (task.Exception != null)
+            {
+                Debug.LogWarning(task.Exception);
+                onSaveDelegate?.Invoke(task.Exception.Message);
+            }
+            else
+            {
+                Debug.Log($"Data saved to '{path}'");
+                onSaveDelegate?.Invoke("Success = " + task.IsCompletedSuccessfully.ToString());
+            }
+        });
     }
 
+    /// <summary>
+    /// Note to self:<br/>
+    /// "Don't use firebase Realtime Database for anything other than a highscore system. You will have a bad time.
+    /// Just use a normal DB where you actually can query something!"
+    /// </summary>
     public void TestLoad()
     {
         var db = FirebaseDatabase.DefaultInstance;
 
-        db.RootReference.Child("Messages").Child("-NO9VUikLmnr0TTPA-0d").GetValueAsync().ContinueWithOnMainThread(task =>
+        db.RootReference.Child("Messages").GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.Exception != null)
             {
                 Debug.LogError(task.Exception);
+                return;
             }
 
             DataSnapshot snap = task.Result;
-            Debug.Log(snap.GetRawJsonValue());
+            var testtt = snap.GetRawJsonValue();
+            Debug.Log(testtt);
 
-            var test = JsonConvert.DeserializeObject<MessageLocation>(snap.GetRawJsonValue());
-            LocationHandler.Instance.AddToStatusText("\n"+test.Text);
-            LocationHandler.Instance.AddToStatusText("\n"+test.DateCreated.ToString());
+            if (task.Exception != null)
+                Debug.LogWarning(task.Exception);
+
+            var ListOfT = new List<MessageLocation>();
+
+            foreach (var item in task.Result.Children)
+            {
+                ListOfT.Add(JsonUtility.FromJson<MessageLocation>(item.GetRawJsonValue()));
+            }
+
+            var testttttt = snap.Value;
+            //snap.ChildrenCount
+            Debug.LogWarning(JsonUtility.ToJson(testttttt));
+
+            //IEnumerable<MessageLocation> messages = snap.Children.Select(c =>
+            //{
+            //    var m = JsonConvert.DeserializeObject<MessageLocation>(c.GetRawJsonValue());
+            //    return LocationHandler.Instance.lastKnownLocation.CalculateDistance(m.Latitude, m.Longitude) < 50 ?
+            //        m : null;
+            //});
+
+            //foreach (var msg in messages)
+            //{
+            //    //dostuff
+            //    LocationHandler.Instance.AddToStatusText("\n" + msg.Text);
+            //    LocationHandler.Instance.AddToStatusText("\n" + msg.DateCreated.ToString());
+            //}
+            //foreach (var msg in messages.ToList())
+            //{
+            //    //dostuff
+            //    LocationHandler.Instance.AddToStatusText("\n" + msg.Text);
+            //    LocationHandler.Instance.AddToStatusText("\n" + msg.DateCreated.ToString());
+            //}
+
+            //var test = JsonConvert.DeserializeObject<MessageLocation>(snap.GetRawJsonValue());
+            //var testss = JsonConvert.DeserializeObject<MessageLocation>(snap.GetRawJsonValue());
+            ////var tests = testss.ToList();
+
+            //foreach (var test in testss)
+            //{
+            //    LocationHandler.Instance.AddToStatusText("\n"+test.Text);
+            //    LocationHandler.Instance.AddToStatusText("\n"+test.DateCreated.ToString());
+            //}
+
+            //foreach (var test in tests)
+            //{
+            //    LocationHandler.Instance.AddToStatusText("\n" + test.Text);
+            //    LocationHandler.Instance.AddToStatusText("\n" + test.DateCreated.ToString());
+            //}
         });
     }
 

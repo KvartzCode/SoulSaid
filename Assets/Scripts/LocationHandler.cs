@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DBTables;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Android;
 using URandom = UnityEngine.Random;
@@ -18,7 +19,8 @@ public enum LogLevel
 public class LocationHandler : MonoBehaviour
 {
     public static LocationHandler Instance { get; private set; }
-    
+    public InstanceState State { get; private set; }
+
     public delegate void OnLocationChanged(LocationInfo locationInfo);
     public OnLocationChanged onLocationChanged;
 
@@ -28,7 +30,7 @@ public class LocationHandler : MonoBehaviour
 
     [SerializeField] GameObject spawnableObjectPrefab;
     [SerializeField] List<MessageLocation> locations = new List<MessageLocation>(); // PLACEHOLDER FOR FIREBASE!
-    [SerializeField] bool locationFeedStarted = false;
+    //[SerializeField] bool locationFeedStarted = false;
     [SerializeField] TextMeshProUGUI statusText;
 
     public LocationInfo lastKnownLocation;
@@ -43,6 +45,7 @@ public class LocationHandler : MonoBehaviour
         }
 
         Instance = this;
+        State = InstanceState.Initializing;
         DontDestroyOnLoad(gameObject);
     }
 
@@ -55,7 +58,7 @@ public class LocationHandler : MonoBehaviour
     {
         if (timer > refreshRate)
         {
-            if (locationFeedStarted && !lastKnownLocation.CompareLocationInfo(Input.location.lastData))
+            if (State == InstanceState.Running && !lastKnownLocation.CompareLocationInfo(Input.location.lastData))
             {
                 lastKnownLocation = Input.location.lastData;
 
@@ -130,15 +133,15 @@ public class LocationHandler : MonoBehaviour
     //    return d;
     //}
 
-    public void PlaceObjectNearby()
-    {
-        Vector3 spawnPos = new Vector3();
-        spawnPos.x = URandom.Range(transform.position.x - 10, transform.position.x + 10);
-        spawnPos.y = transform.position.y;
-        spawnPos.z = URandom.Range(transform.position.z + 5, transform.position.z + 10);
-        var newLocationObject = Instantiate(spawnableObjectPrefab, spawnPos, transform.rotation);
-        AddToStatusText($"Spawned new object at: '{newLocationObject.transform.position}'");
-    }
+    //public void PlaceObjectNearby()
+    //{
+    //    Vector3 spawnPos = new Vector3();
+    //    spawnPos.x = URandom.Range(transform.position.x - 10, transform.position.x + 10);
+    //    spawnPos.y = transform.position.y;
+    //    spawnPos.z = URandom.Range(transform.position.z + 5, transform.position.z + 10);
+    //    var newLocationObject = Instantiate(spawnableObjectPrefab, spawnPos, transform.rotation);
+    //    AddToStatusText($"Spawned new object at: '{newLocationObject.transform.position}'");
+    //}
 
     IEnumerator CheckPermissions()
     {
@@ -146,7 +149,7 @@ public class LocationHandler : MonoBehaviour
         if (!Permission.HasUserAuthorizedPermission(Permission.FineLocation))
         {
             var callbacks = new PermissionCallbacks();
-            callbacks.PermissionGranted += Callbacks_PermissionGranted;
+            callbacks.PermissionGranted += PermissionsGranted;
             Permission.RequestUserPermission(Permission.FineLocation, callbacks);
             yield break;
         }
@@ -155,7 +158,7 @@ public class LocationHandler : MonoBehaviour
         StartCoroutine(InitializeGPSService());
     }
 
-    private void Callbacks_PermissionGranted(string obj)
+    private void PermissionsGranted(string obj)
     {
         AddToStatusText($"Permission Granted: '{obj}'");
         StartCoroutine(InitializeGPSService());
@@ -190,161 +193,116 @@ public class LocationHandler : MonoBehaviour
         if (Input.location.status == LocationServiceStatus.Failed)
         {
             AddToStatusText("Unable to determine device location");
+            State = InstanceState.Stopped;
+            GameManager.Instance.HandlerOrManagerStateChanged();
             yield break;
         }
         else //access granted
         {
-            locationFeedStarted = true;
+            State = InstanceState.Running;
+            GameManager.Instance.HandlerOrManagerStateChanged();
         }
     }
 
-    private IEnumerator StartLocationService(float desiredAccuracyInMeters = 10, float updateDistanceInMeters = 10)
-    {
-        AddToStatusText("Start of 'StartLocationService' method.");
+//    private IEnumerator StartLocationService(float desiredAccuracyInMeters = 10, float updateDistanceInMeters = 10)
+//    {
+//        AddToStatusText("Start of 'StartLocationService' method.");
 
-#if UNITY_EDITOR // Wait for Unity Remote to connect
-        yield return new WaitForSeconds(5);
-#endif
-#if PLATFORM_ANDROID
-        if (!Permission.HasUserAuthorizedPermission(Permission.CoarseLocation)) {
-            Permission.RequestUserPermission(Permission.CoarseLocation);
-        }
+//#if UNITY_EDITOR // Wait for Unity Remote to connect
+//        yield return new WaitForSeconds(5);
+//#endif
+//#if PLATFORM_ANDROID
+//        if (!Permission.HasUserAuthorizedPermission(Permission.CoarseLocation)) {
+//            Permission.RequestUserPermission(Permission.CoarseLocation);
+//        }
 
-        // First, check if user has location service enabled
-        if (!Input.location.isEnabledByUser) {
-            // TODO Failure
-            //Debug.LogFormat("Android and Location not enabled");
-            AddToStatusText("Android and Location not enabled");
-            yield break;
-        }
-#endif
-        yield return new WaitForSeconds(5);
-        if (Input.location.status == LocationServiceStatus.Running)
-            AddToStatusText("LocationServiceStatus is already running?");
-        if (!Permission.HasUserAuthorizedPermission(Permission.CoarseLocation))
-        {
-            Permission.RequestUserPermission(Permission.CoarseLocation);
-        }
-        if (!Input.location.isEnabledByUser) // Is location service enabled?
-        {
-            AddToStatusText("No locations enabled in the device", LogLevel.Warning);
-            yield break;
-        }
-        Input.location.Stop();
-        yield return new WaitForSeconds(10);
-        // Start service before querying location
-        Input.location.Start();
+//        // First, check if user has location service enabled
+//        if (!Input.location.isEnabledByUser) {
+//            // TODO Failure
+//            //Debug.LogFormat("Android and Location not enabled");
+//            AddToStatusText("Android and Location not enabled");
+//            yield break;
+//        }
+//#endif
+//        yield return new WaitForSeconds(5);
+//        if (Input.location.status == LocationServiceStatus.Running)
+//            AddToStatusText("LocationServiceStatus is already running?");
+//        if (!Permission.HasUserAuthorizedPermission(Permission.CoarseLocation))
+//        {
+//            Permission.RequestUserPermission(Permission.CoarseLocation);
+//        }
+//        if (!Input.location.isEnabledByUser) // Is location service enabled?
+//        {
+//            AddToStatusText("No locations enabled in the device", LogLevel.Warning);
+//            yield break;
+//        }
+//        Input.location.Stop();
+//        yield return new WaitForSeconds(10);
+//        // Start service before querying location
+//        Input.location.Start();
 
-#if UNITY_EDITOR
-        yield return new WaitForSeconds(5);
-#endif
-        yield return new WaitForSeconds(5);
+//#if UNITY_EDITOR
+//        yield return new WaitForSeconds(5);
+//#endif
+//        yield return new WaitForSeconds(5);
 
-        int maxWait = 20; // Wait until service initializes
-        while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
-        {
-            yield return new WaitForSeconds(1);
-            maxWait--;
-        }
+//        int maxWait = 20; // Wait until service initializes
+//        while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
+//        {
+//            yield return new WaitForSeconds(1);
+//            maxWait--;
+//        }
 
-        if (maxWait < 1)
-        {
-            AddToStatusText("Service didn't initialize in 20 seconds");
-            yield break;
-        }
+//        if (maxWait < 1)
+//        {
+//            AddToStatusText("Service didn't initialize in 20 seconds");
+//            yield break;
+//        }
 
-        AddToStatusText($"Status = {Input.location.status}, starting again and wait for 15 seconds.");
-        maxWait = 15;
+//        AddToStatusText($"Status = {Input.location.status}, starting again and wait for 15 seconds.");
+//        maxWait = 15;
 
-        Input.location.Start(desiredAccuracyInMeters, updateDistanceInMeters);
-        AddToStatusText($"Status = {Input.location.status}");
+//        Input.location.Start(desiredAccuracyInMeters, updateDistanceInMeters);
+//        AddToStatusText($"Status = {Input.location.status}");
 
-        while (Input.location.status == LocationServiceStatus.Stopped && maxWait > 0)
-        {
-            yield return new WaitForSecondsRealtime(1);
-            maxWait--;
-        }
+//        while (Input.location.status == LocationServiceStatus.Stopped && maxWait > 0)
+//        {
+//            yield return new WaitForSecondsRealtime(1);
+//            maxWait--;
+//        }
 
-        if (maxWait < 1)
-        {
-            AddToStatusText("Service didn't initialize in 15 seconds");
-            yield break;
-        }
+//        if (maxWait < 1)
+//        {
+//            AddToStatusText("Service didn't initialize in 15 seconds");
+//            yield break;
+//        }
 
-        if (Input.location.status == LocationServiceStatus.Failed)
-        {
-            AddToStatusText("Unable to determine device location");
-            yield break;
-        }
-        else
-        {
-            float lat = Input.location.lastData.latitude;
-            float lon = Input.location.lastData.longitude;
-            float alt = Input.location.lastData.altitude;
-            float horAcc = Input.location.lastData.horizontalAccuracy;
-            float verAcc = Input.location.lastData.verticalAccuracy;
-            double timestamp = Input.location.lastData.timestamp;
-            Debug.Log($"latitude = '{lat}', longitude = '{lon}', altitude = '{alt}', horizontalAccuracy = '{horAcc}'," +
-                $" verticalAccuracy = '{verAcc}', timestamp = '{timestamp}', ");
-            AddToStatusText($"currentPos: latitude = '{lat}', longitude = '{lon}'");
+//        if (Input.location.status == LocationServiceStatus.Failed)
+//        {
+//            AddToStatusText("Unable to determine device location");
+//            yield break;
+//        }
+//        else
+//        {
+//            float lat = Input.location.lastData.latitude;
+//            float lon = Input.location.lastData.longitude;
+//            float alt = Input.location.lastData.altitude;
+//            float horAcc = Input.location.lastData.horizontalAccuracy;
+//            float verAcc = Input.location.lastData.verticalAccuracy;
+//            double timestamp = Input.location.lastData.timestamp;
+//            Debug.Log($"latitude = '{lat}', longitude = '{lon}', altitude = '{alt}', horizontalAccuracy = '{horAcc}'," +
+//                $" verticalAccuracy = '{verAcc}', timestamp = '{timestamp}', ");
+//            AddToStatusText($"currentPos: latitude = '{lat}', longitude = '{lon}'");
 
-            locationFeedStarted = true;
-        }
-    }
-
-
-    //float DegToRad(float deg)
-    //{
-    //    float temp;
-    //    temp = (deg * PI) / 180.0f;
-    //    temp = Mathf.Tan(temp);
-    //    return temp;
-    //}
-
-    //float Distance_x(float lon_a, float lon_b, float lat_a, float lat_b)
-    //{
-    //    float temp;
-    //    float c;
-    //    temp = (lat_b - lat_a);
-    //    c = Mathf.Abs(temp * Mathf.Cos((lat_a + lat_b)) / 2);
-    //    return c;
-    //}
-
-    //private float Distance_y(float lat_a, float lat_b)
-    //{
-    //    float c;
-    //    c = (lat_b - lat_a);
-    //    return c;
-    //}
-
-    //float Final_distance(float x, float y)
-    //{
-    //    float c;
-    //    c = Mathf.Abs(Mathf.Sqrt(Mathf.Pow(x, 2f) + Mathf.Pow(y, 2f))) * 6371;
-    //    return c;
-    //}
-
-    ////*******************************
-    ////T$$anonymous$$s is the function to call to calculate the distance between two points
-
-    //public void Calculate_Distance(float long_a, float lat_a, float long, _b, float lat_b)
-    //{
-    //    float a_long_r, a_lat_r, p_long_r, p_lat_r, dist_x, dist_y, total_dist;
-    //    a_long_r = DegToRad(long_a);
-    //    a_lat_r = DegToRad(lat_a);
-    //    p_long_r = DegToRad(long_b);
-    //    p_lat_r = DegToRad(lat_b);
-    //    dist_x = Distance_x(a_long_r, p_long_r, a_lat_r, p_lat_r);
-    //    dist_y = Distance_y(a_lat_r, p_lat_r);
-    //    total_dist = Final_distance(dist_x, dist_y);
-    //    //prints the distance on the console
-    //    print(total_dist);
-
-    //}
+//            locationFeedStarted = true;
+//        }
+//    }
 
     private void OnDestroy()
     {
         if (Input.location.status == LocationServiceStatus.Running)
             Input.location.Stop();
+
+        StopAllCoroutines();
     }
 }

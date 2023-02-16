@@ -3,6 +3,7 @@ using Firebase.Auth;
 using Firebase.Extensions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class FirebaseLogin : MonoBehaviour
@@ -39,10 +40,12 @@ public class FirebaseLogin : MonoBehaviour
 		});
 
 		//Disable button untill we have logged in
-		playButton.interactable = false;
 
 		registerButton.onClick.AddListener(() => RegisterNewUser(username.text, password.text));
 		signInButton.onClick.AddListener(() => SignIn(username.text, password.text));
+		playButton.onClick.AddListener(() => StartGame());
+
+		playButton.interactable = false;
 	}
 
 	private void RegisterNewUser(string email, string password)
@@ -81,6 +84,11 @@ public class FirebaseLogin : MonoBehaviour
 			}
 		});
 	}
+
+	private void StartGame()
+    {
+		SceneManager.LoadScene(1);
+    }
 
 	//Connect to button
 	private void AnonymousSignIn()

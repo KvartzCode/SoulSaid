@@ -2496,6 +2496,72 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SaveInputFieldData: 1
+--- !u!1 &1291034777
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1291034779}
+  - component: {fileID: 1291034778}
+  m_Layer: 0
+  m_Name: LocationHandler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1291034778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291034777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af2410070f3c25048b44811a55ca737d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  refreshRate: 10
+  spawnableObjectPrefab: {fileID: 6633805003445379486, guid: 00cdd9560b912b843a6828df8709500f,
+    type: 3}
+  locations:
+  - Text: test 1
+    Latitude: 57.84644
+    Longitude: 11.79463
+    UserID: asdf
+  - Text: test 2
+    Latitude: 57.70601
+    Longitude: 11.93622
+    UserID: asdf
+  - Text: test 3
+    Latitude: 57.84661
+    Longitude: 11.79491
+    UserID: asdf
+  - Text: test 4
+    Latitude: 57.705208
+    Longitude: 11.935646
+    UserID: asdf
+  locationFeedStarted: 0
+  statusText: {fileID: 0}
+--- !u!4 &1291034779
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291034777}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.4306278, y: -0.22969784, z: 5.8453465}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1337275133
 GameObject:
   m_ObjectHideFlags: 0

@@ -8,6 +8,7 @@ public class InputHelper : MonoBehaviour
 	public bool SaveInputFieldData = true;
 	List<GameObject> fields;
 
+
 	void Start()
     {
 		fields = new List<GameObject>();

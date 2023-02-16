@@ -26,7 +26,8 @@ public class FirebaseTest : MonoBehaviour
         if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
         {
             Debug.Log("pressed F");
-            db.SaveMessage("Messages", message);
+            //db.TestLoad();
+            db.SaveMessage("Messages", message.Text);
         }
     }
 
