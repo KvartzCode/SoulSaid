@@ -319,9 +319,10 @@ MonoBehaviour:
   detectionDistance: 50
   updateDistance: 50
   maxNewInstancedMessages: 10
-  cam: {fileID: 0}
-  spawnablePrefab: {fileID: 0}
-  m_RaycastManager: {fileID: 0}
+  cam: {fileID: 1659315990}
+  spawnablePrefab: {fileID: 6633805003445379486, guid: 00cdd9560b912b843a6828df8709500f,
+    type: 3}
+  m_RaycastManager: {fileID: 959601015}
   message:
     UserID: 
     Text: 

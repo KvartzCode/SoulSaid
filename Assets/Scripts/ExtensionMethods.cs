@@ -54,6 +54,7 @@ public static class ExtensionMethods
 
     public static bool IsZero(this LocationInfo info)
     {
+        Debug.LogWarning($"IsZero: {info.latitude}, {info.longitude}");
         return info.latitude != 0 || info.longitude != 0; // returns true if both values are 0.
     }
 

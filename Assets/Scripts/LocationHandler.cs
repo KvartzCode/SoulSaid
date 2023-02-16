@@ -56,9 +56,12 @@ public class LocationHandler : MonoBehaviour
 
     private void Update()
     {
+        if (State == InstanceState.Running)
+            return;
+
         if (timer > refreshRate)
         {
-            if (State == InstanceState.Running && !lastKnownLocation.CompareLocationInfo(Input.location.lastData))
+            if (!lastKnownLocation.CompareLocationInfo(Input.location.lastData))
             {
                 lastKnownLocation = Input.location.lastData;
 
@@ -195,14 +198,14 @@ public class LocationHandler : MonoBehaviour
         {
             AddToStatusText("Unable to determine device location");
             State = InstanceState.Stopped;
-            GameManager.Instance.HandlerOrManagerStateChanged();
-            yield break;
         }
         else //access granted
         {
             State = InstanceState.Running;
-            GameManager.Instance.HandlerOrManagerStateChanged();
         }
+
+        GameManager.Instance.HandlerOrManagerStateChanged();
+        yield break;
     }
 
 //    private IEnumerator StartLocationService(float desiredAccuracyInMeters = 10, float updateDistanceInMeters = 10)

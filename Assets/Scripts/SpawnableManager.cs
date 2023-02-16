@@ -30,9 +30,7 @@ public class CustomLocation
 public class SpawnableManager : MonoBehaviour
 {
     public static SpawnableManager Instance { get; private set; }
-    public InstanceState state;
-
-    public bool isSpawnModeActive = false;
+    public InstanceState State { get; private set; }
 
     [SerializeField, Tooltip("How many metres from the device to look for saved messages")]
     float detectionDistance = 50;
@@ -66,7 +64,7 @@ public class SpawnableManager : MonoBehaviour
             return;
         }
 
-        state = InstanceState.Initializing;
+        State = InstanceState.Initializing;
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -84,66 +82,49 @@ public class SpawnableManager : MonoBehaviour
         StartCoroutine(WaitForFirstVerifiedLocation());
     }
 
-    private void OnDestroy()
-    {
-        LocationHandler.Instance.onLocationChanged -= OnLocationChanged;
-        StopAllCoroutines();
-    }
+    //void Update()
+    //{
+    //    //ExampleSpawnMethod();
 
-    void Update()
-    {
-        ExampleSpawnMethod();
-
-        if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
-            GetMessagesFromDB();
-            //db.SaveMessage("Messages", message);
-    }
+    //    if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
+    //        GetMessagesFromDB();
+    //        //db.SaveMessage("Messages", message);
+    //}
 
 
     IEnumerator WaitForFirstVerifiedLocation()
     {
         //yield return new WaitForSecondsRealtime(5);
-        int tries = 30;
-        while (!lastLocationCheckpoint.IsZero() && tries-- > 0)
+        int tries = 60;
+        while (LocationHandler.Instance.lastKnownLocation.IsZero() && tries-- > 0)
         {
             yield return new WaitForSecondsRealtime(1);
         }
 
         if (tries > 0)
-            state = InstanceState.Running;
+            State = InstanceState.Running;
         else
-            state = InstanceState.Stopped;
+            State = InstanceState.Stopped;
 
+        Debug.LogWarning($"SpawnableManager state = [{State}]");
         GameManager.Instance.HandlerOrManagerStateChanged();
     }
 
     void OnLocationChanged(LocationInfo info)
     {
+        if (GameManager.Instance.State != InstanceState.Running)
+            return;
+
         var distance = info.CalculateDistance(lastLocationCheckpoint);
         LocationHandler.Instance.AddToStatusText($"distance is: '{distance}'");
 
-        if (info.CalculateDistance(lastLocationCheckpoint) < updateDistance)
+        if (distance < updateDistance)
             return;
         else
             lastLocationCheckpoint = info;
 
-        LocationHandler.Instance.AddToStatusText("Location changed: " + JsonConvert.SerializeObject(info),
-            LogLevel.Warning);
-    }
-
-    GameObject SpawnNearby()
-    {
-        if (isSpawnModeActive)
-            return null;
-        else
-        {
-            float randomDistance = URandom.Range(5f, 10f);
-            Vector3 randomPos = cam.transform.position.GetRandomPointOnHorizontalCircle(randomDistance);
-            GameObject newObject = Instantiate(spawnablePrefab, randomPos, Quaternion.identity);
-            spawnedObject = newObject;
-
-            return newObject;
-        }
+        LocationHandler.Instance.AddToStatusText("Location changed: " + JsonConvert.SerializeObject(info), LogLevel.Info);
+        GetMessagesFromDB();
     }
 
     void ExampleSpawnMethod()
@@ -184,6 +165,9 @@ public class SpawnableManager : MonoBehaviour
 
     public void GetMessagesFromDB()
     {
+        if (GameManager.Instance.IsEditModeActive)
+            return;
+
         Debug.LogWarning("PRESSED F IN CHAT!");
 
         db.RootReference.Child("Messages").GetValueAsync().ContinueWithOnMainThread(task =>
@@ -225,5 +209,23 @@ public class SpawnableManager : MonoBehaviour
                     locations.Add(new CustomLocation(location, newLocation, true));
             }
         });
+    }
+
+    GameObject SpawnNearby()
+    {
+        Debug.LogWarning("huh?!");
+        float randomDistance = URandom.Range(5f, 10f);
+        Vector3 randomPos = cam.transform.position.GetRandomPointOnHorizontalCircle(randomDistance);
+        GameObject newObject = Instantiate(spawnablePrefab, randomPos, Quaternion.identity);
+        spawnedObject = newObject;
+
+        return newObject;
+    }
+
+
+    private void OnDestroy()
+    {
+        LocationHandler.Instance.onLocationChanged -= OnLocationChanged;
+        StopAllCoroutines();
     }
 }

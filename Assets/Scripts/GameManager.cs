@@ -17,11 +17,11 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    public InstanceState state;
+    public InstanceState State { get; private set; }
 
     [SerializeField]
     Button editButton;
-    private bool _IsEditModeActive = false;
+    public bool IsEditModeActive { get; private set; } = false;
 
 
     private void Awake()
@@ -32,7 +32,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        state = InstanceState.Initializing;
+        State = InstanceState.Initializing;
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -53,33 +53,36 @@ public class GameManager : MonoBehaviour
 
     public void HandlerOrManagerStateChanged()
     {
-        if (InstanceState.Running.EqualsAll(SpawnableManager.Instance.state, LocationHandler.Instance.State)
-            && state == InstanceState.Initializing) //if all possible states are true and game not paused, game should run.
+        if (InstanceState.Running.EqualsAll(SpawnableManager.Instance.State, LocationHandler.Instance.State)
+            && State == InstanceState.Initializing) //if all possible states are true and game not paused, game should run.
         {
-            state = InstanceState.Running;
+            Debug.Log("ALL MANAGERS AND HANDLERS ARE RUNNING! SUCCESS!");
+            State = InstanceState.Running;
             editButton.interactable = true;
         }
         else
         {
-            if (InstanceState.Initializing.EqualsAll(SpawnableManager.Instance.state, LocationHandler.Instance.State))
+            if (InstanceState.Initializing.EqualsAll(SpawnableManager.Instance.State, LocationHandler.Instance.State))
             {
+                Debug.Log("All managers are still initializing...");
                 //TODO: do nothing?
             }
+            else if (InstanceState.Stopped.EqualsAll(SpawnableManager.Instance.State, LocationHandler.Instance.State))
+            {
+                Debug.LogWarning("ALL MANAGERS ARE STOPPED!");
+                //TODO: do nothing?
+            }
+            else
+            {
+                Debug.Log("One or more managers are still initializing...");
+            }
         }
+
+        Debug.Log($"SpawnableManager = [{SpawnableManager.Instance.State}] \nLocationHandler = [{LocationHandler.Instance.State}]");
     }
 
-    public void ToggleEditMode()
+    private void ToggleEditMode()
     {
-        _IsEditModeActive = !_IsEditModeActive;
+        IsEditModeActive = !IsEditModeActive;
     }
-
-
-    ///// <summary>
-    ///// WARNING!<br/>
-    ///// ONLY <see cref="LocationHandler"/> SHOULD CALL THIS METHOD! GAME LOGIC CAN BREAK IF CALLED INCORRECTLY!
-    ///// </summary>
-    //public void LocationHandlerActiveState(bool state)
-    //{
-    //    _IsLocationHandlerActive = state;
-    //}
 }
