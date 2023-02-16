@@ -56,7 +56,7 @@ public class LocationHandler : MonoBehaviour
 
     private void Update()
     {
-        if (State == InstanceState.Running)
+        if (State != InstanceState.Running)
             return;
 
         if (timer > refreshRate)

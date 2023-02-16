@@ -55,7 +55,7 @@ public static class ExtensionMethods
     public static bool IsZero(this LocationInfo info)
     {
         Debug.LogWarning($"IsZero: {info.latitude}, {info.longitude}");
-        return info.latitude != 0 || info.longitude != 0; // returns true if both values are 0.
+        return info.latitude == 0 && info.longitude == 0; // returns true if both values are 0.
     }
 
     #endregion
@@ -102,21 +102,34 @@ public static class ExtensionMethods
 
     #region Enums
 
-    /// <remarks>NOTE!<br/>
-    /// Even if any of the provided enum types does not match with the compared enum type, the method will compare the values without breaking.
-    /// </remarks>
     /// <summary>
     /// Matches enum values with comparing enum.
     /// </summary>
     /// <param name="value">enum to match</param>
     /// <param name="values">enums to match with compared enum</param>
     /// <returns>true if all values match, otherwise false.</returns>
-    public static bool EqualsAll(this Enum value, params Enum[] values)
+    public static bool EqualsAll<T>(this T value, params T[] values) where T : Enum
     {
         if (values.Any(s => s.GetType() != value.GetType()))
             Debug.LogWarning("WARNING! One or more of the provided Enums is not of the same type as the compared Enum!");
 
-        return values.All(s => s == value);
+        bool result = values.All(s => EqualityComparer<T>.Default.Equals(s, value));
+        return result;
+    }
+
+    /// <summary>
+    /// Matches enum values with comparing enum.
+    /// </summary>
+    /// <param name="value">enum to match</param>
+    /// <param name="values">enums to match with compared enum</param>
+    /// <returns>true if any values match, otherwise false.</returns>
+    public static bool EqualsAny<T>(this T value, params T[] values) where T : Enum
+    {
+        if (values.Any(s => s.GetType() != value.GetType()))
+            Debug.LogWarning("WARNING! One or more of the provided Enums is not of the same type as the compared Enum!");
+
+        bool result = values.Any(s => EqualityComparer<T>.Default.Equals(s, value));
+        return result;
     }
 
     #endregion
