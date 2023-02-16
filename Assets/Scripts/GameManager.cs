@@ -39,7 +39,14 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        editButton = editButton != null ? editButton : FindObjectsOfType<Button>().FirstOrDefault(b => b.name == "BTNEditMode");
+        editButton = editButton != null ? editButton : GameObject.Find("BTNEditMode").GetComponent<Button>();
+
+        if (editButton == null)
+        {
+            Debug.LogError("Can't find edit button in scene!");
+            return;
+        }
+
         editButton.interactable = false;
         editButton.onClick.AddListener(delegate { ToggleEditMode(); });
     }

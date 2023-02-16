@@ -5,15 +5,9 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/AuthenticationScene.unity
-    guid: f024beb82fec94e4b8506e7d3323c205
   - enabled: 1
-    path: Assets/Scenes/Test AR.unity
-    guid: 04e83812bc4a0414188c025ae0927c3f
-  - enabled: 0
-    path: Assets/Scenes/DB Test.unity
-    guid: a96e28b193f5f21478b699befd2dd782
+    path: Assets/Scenes/GameScene.unity
+    guid: 5784d49b99687914393519a9ace20acd
   m_configObjects:
     Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: 744b813df90924c169af73489b8325de,
       type: 2}
