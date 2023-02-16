@@ -156,6 +156,7 @@ public class LocationHandler : MonoBehaviour
 #endif
 
         StartCoroutine(InitializeGPSService());
+        yield break;
     }
 
     private void PermissionsGranted(string obj)

@@ -38,6 +38,7 @@ public class GetLocation : MonoBehaviour
 #endif
 
         StartCoroutine(InitializeGPSService());
+        yield break;
     }
 
     private void Callbacks_PermissionGranted(string obj)
