@@ -3,9 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DBTables;
+using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 using Newtonsoft.Json;
+using TMPro;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using URandom = UnityEngine.Random;
@@ -49,11 +51,13 @@ public class SpawnableManager : MonoBehaviour
     GameObject spawnedObject;
     LocationInfo lastLocationCheckpoint;
 
+    public MessageLocation message = new MessageLocation(); //only for testing purposes
+
     //[SerializeField, ReadOnly]
     //DBAPI db;
     FirebaseDatabase db;
-
-    public MessageLocation message = new MessageLocation(); //only for testing purposes
+    [SerializeField] TMP_InputField inputField;
+    [SerializeField] TMP_Text statusText;
 
 
     private void Awake()
@@ -91,7 +95,6 @@ public class SpawnableManager : MonoBehaviour
     //        //db.SaveMessage("Messages", message);
     //}
 
-
     IEnumerator WaitForFirstVerifiedLocation()
     {
         //yield return new WaitForSecondsRealtime(5);
@@ -109,6 +112,7 @@ public class SpawnableManager : MonoBehaviour
         Debug.LogWarning($"SpawnableManager state = [{State}]");
         GameManager.Instance.HandlerOrManagerStateChanged();
     }
+
 
     void OnLocationChanged(LocationInfo info)
     {
@@ -197,6 +201,7 @@ public class SpawnableManager : MonoBehaviour
                         break;
                 }
             }
+
             Debug.LogWarning(JsonConvert.SerializeObject(nearbyLocations));
 
             foreach (var location in nearbyLocations)
@@ -207,6 +212,59 @@ public class SpawnableManager : MonoBehaviour
                 var newLocation = SpawnNearby();
                 if (newLocation != null)
                     locations.Add(new CustomLocation(location, newLocation, true));
+            }
+        });
+    }
+
+    public void SaveMessageToDB()
+    {
+        if (!GameManager.Instance.IsEditModeActive)
+        {
+            Debug.LogWarning("SaveMessageToDB was called but IsEditModeActive is false!");
+            return;
+        }
+
+        var path = "Messages";
+        var auth = FirebaseAuth.DefaultInstance;
+        LocationInfo location = LocationHandler.Instance.lastKnownLocation;
+
+        var message = new MessageLocation(auth.CurrentUser.UserId, inputField.text, location);
+        var msg = JsonConvert.SerializeObject(message);
+
+        SaveData(path, msg);
+    }
+
+    private void SaveData(string path, string data)
+    {
+        DatabaseReference dbRef = db.RootReference.Child(path).Push();
+        dbRef.SetRawJsonValueAsync(data).ContinueWithOnMainThread(task =>
+        {
+            if (task.Exception != null)
+            {
+                Debug.LogWarning(task.Exception);
+                statusText.text = task.Exception.Message;
+                return;
+            }
+
+            Debug.Log($"Data saved to '{path}'");
+            path = $"{path}/{dbRef.Key}/DateCreated";
+            SaveTimeStamp(path);
+        });
+    }
+
+    private void SaveTimeStamp(string path)
+    {
+        db.RootReference.Child(path).SetValueAsync(ServerValue.Timestamp).ContinueWithOnMainThread(task =>
+        {
+            if (task.Exception != null)
+            {
+                Debug.LogWarning(task.Exception);
+                statusText.text += $"\n{task.Exception.Message}";
+            }
+            else
+            {
+                Debug.Log($"Data saved to '{path}'");
+                GameManager.Instance.ExitEditMode();
             }
         });
     }

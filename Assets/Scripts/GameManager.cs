@@ -18,10 +18,11 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     public InstanceState State { get; private set; }
-
-    [SerializeField]
-    Button editButton;
     public bool IsEditModeActive { get; private set; } = false;
+
+    [SerializeField] Button editButton;
+    [SerializeField] List<GameObject> gameModeUIElements = new List<GameObject>();
+    [SerializeField] List<GameObject> editModeUIElements = new List<GameObject>();
 
 
     private void Awake()
@@ -84,5 +85,30 @@ public class GameManager : MonoBehaviour
     private void ToggleEditMode()
     {
         IsEditModeActive = !IsEditModeActive;
+
+        foreach (var item in editModeUIElements)
+        {
+            item.SetActive(IsEditModeActive);
+        }
+
+        foreach (var item in gameModeUIElements)
+        {
+            item.SetActive(!IsEditModeActive);
+        }
+    }
+
+    public void ExitEditMode()
+    {
+        IsEditModeActive = false;
+
+        foreach (var item in editModeUIElements)
+        {
+            item.SetActive(false);
+        }
+
+        foreach (var item in gameModeUIElements)
+        {
+            item.SetActive(true);
+        }
     }
 }
