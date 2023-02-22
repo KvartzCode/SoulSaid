@@ -140,11 +140,14 @@ public class SpawnableManager : MonoBehaviour
             return;
 
         Ray ray = cam.ScreenPointToRay(Input.GetTouch(0).position);
+        Debug.DrawRay(cam.transform.position, ray.direction);
 
         if (m_RaycastManager.Raycast(Input.GetTouch(0).position, m_Hits))
         {
+            Debug.Log("ray hit something");
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
+                Debug.LogWarning("ray hit something specific!");
                 if (hit.collider.gameObject.CompareTag("Spawnable"))
                 {
                     spawnedObject = hit.collider.GetComponent<MessageWorldObject>();
@@ -253,8 +256,11 @@ public class SpawnableManager : MonoBehaviour
                 var newLocation = SpawnNearby();
                 if (newLocation != null)
                 {
-                    var worldObject = newLocation.GetComponent<MessageWorldObject>();
-                    Debug.LogError("Spawnable object have no MessageWorldObject component!");
+                    var worldObject = newLocation.GetComponentInChildren<MessageWorldObject>();
+
+                    if (worldObject == null)
+                        Debug.LogError("Spawnable object have no MessageWorldObject component!");
+
                     locations.Add(new CustomLocation(location, worldObject, true));
                 }
             }

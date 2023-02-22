@@ -629,14 +629,9 @@ MonoBehaviour:
   updateDistance: 50
   maxNewInstancedMessages: 10
   cam: {fileID: 1659315990}
-  spawnablePrefab: {fileID: 627174076246866559, guid: 68916c6e9e4b2d34bb92ea14707713d5,
+  spawnablePrefab: {fileID: 172411074251195085, guid: a32fda7804fca6949b07b49d5503e9b5,
     type: 3}
   m_RaycastManager: {fileID: 959601015}
-  message:
-    UserID: 
-    Text: 
-    Latitude: 0
-    Longitude: 0
   inputField: {fileID: 486569771}
   statusText: {fileID: 1960109183}
 --- !u!4 &596765476
