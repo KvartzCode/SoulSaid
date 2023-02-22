@@ -17,14 +17,14 @@ using URandom = UnityEngine.Random;
 public class CustomLocation
 {
     public MessageLocation locationObject;
-    public GameObject inGameObject;
+    public MessageWorldObject messageWorldObject;
     public bool isSpawned = false; //does nothing atm, may remove later.
 
 
-    public CustomLocation(MessageLocation messageLocation, GameObject gameObject, bool isSpawned = false)
+    public CustomLocation(MessageLocation messageLocation, MessageWorldObject messageWorldObject, bool isSpawned = false)
     {
         locationObject = messageLocation;
-        inGameObject = gameObject;
+        this.messageWorldObject = messageWorldObject;
         this.isSpawned = isSpawned;
     }
 }
@@ -45,13 +45,13 @@ public class SpawnableManager : MonoBehaviour
 
     [SerializeField] GameObject spawnablePrefab;
     [SerializeField] ARRaycastManager m_RaycastManager;
-    List<ARRaycastHit> m_Hits = new List<ARRaycastHit>();
+    List<ARRaycastHit> m_Hits = new();
 
-    List<CustomLocation> locations = new List<CustomLocation>();
-    GameObject spawnedObject;
+    List<CustomLocation> locations = new();
+    MessageWorldObject spawnedObject;
     LocationInfo lastLocationCheckpoint;
 
-    public MessageLocation message = new MessageLocation(); //only for testing purposes
+    //public MessageLocation message = new(); //only for testing purposes
 
     //[SerializeField, ReadOnly]
     //DBAPI db;
@@ -81,19 +81,21 @@ public class SpawnableManager : MonoBehaviour
         db = FirebaseDatabase.DefaultInstance;
 
         spawnedObject = null;
-        //db = GetComponent<DBAPI>();
         LocationHandler.Instance.onLocationChanged += OnLocationChanged;
         StartCoroutine(WaitForFirstVerifiedLocation());
     }
 
-    //void Update()
-    //{
-    //    //ExampleSpawnMethod();
+    void Update()
+    {
+        //ExampleSpawnMethod();
 
-    //    if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
-    //        GetMessagesFromDB();
-    //        //db.SaveMessage("Messages", message);
-    //}
+        //if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
+        //    GetMessagesFromDB();
+        //db.SaveMessage("Messages", message);
+
+        if (Input.touchCount > 0)
+            CheckIfMessageWasSelected();
+    }
 
     IEnumerator WaitForFirstVerifiedLocation()
     {
@@ -131,48 +133,87 @@ public class SpawnableManager : MonoBehaviour
         GetMessagesFromDB();
     }
 
-    void ExampleSpawnMethod()
+
+    void CheckIfMessageWasSelected()
     {
-        if (Input.touchCount == 0)
+        if (spawnedObject == null && Input.touchCount == 0 && Input.GetTouch(0).phase != TouchPhase.Began)
             return;
 
-        RaycastHit hit;
         Ray ray = cam.ScreenPointToRay(Input.GetTouch(0).position);
 
         if (m_RaycastManager.Raycast(Input.GetTouch(0).position, m_Hits))
         {
-            if (Input.GetTouch(0).phase == TouchPhase.Began && spawnedObject == null)
+            if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                if (Physics.Raycast(ray, out hit))
+                if (hit.collider.gameObject.CompareTag("Spawnable"))
                 {
-                    if (hit.collider.gameObject.CompareTag("Spawnable"))
-                    {
-                        spawnedObject = hit.collider.gameObject;
-                    }
-                    else
-                    {
-                        //SpawnPrefab(m_Hits[0].pose.position);
-                    }
+                    spawnedObject = hit.collider.GetComponent<MessageWorldObject>();
+                    spawnedObject.DisplayText();
                 }
-
-            }
-            else if (Input.GetTouch(0).phase == TouchPhase.Moved && spawnedObject != null)
-            {
-                spawnedObject.transform.position = m_Hits[0].pose.position;
-            }
-            if (Input.GetTouch(0).phase == TouchPhase.Ended)
-            {
-                spawnedObject = null;
+                else
+                {
+                    spawnedObject.HideText();
+                    spawnedObject = null;
+                }
             }
         }
     }
+
+    GameObject SpawnNearby()
+    {
+        float randomDistance = URandom.Range(5f, 10f);
+        Vector3 randomPos = cam.transform.position.GetRandomPointOnHorizontalCircle(randomDistance);
+
+        bool rayHit = Physics.Raycast(randomPos, Vector3.down, out RaycastHit hit);
+        randomPos = rayHit ? hit.point : randomPos;
+
+        GameObject newObject = Instantiate(spawnablePrefab, randomPos, Quaternion.identity);
+        return newObject;
+    }
+
+    //void ExampleSpawnMethod()
+    //{
+    //    if (Input.touchCount == 0)
+    //        return;
+
+    //    RaycastHit hit;
+    //    Ray ray = cam.ScreenPointToRay(Input.GetTouch(0).position);
+
+    //    if (m_RaycastManager.Raycast(Input.GetTouch(0).position, m_Hits))
+    //    {
+    //        if (Input.GetTouch(0).phase == TouchPhase.Began && spawnedObject == null)
+    //        {
+    //            if (Physics.Raycast(ray, out hit))
+    //            {
+    //                if (hit.collider.gameObject.CompareTag("Spawnable"))
+    //                {
+    //                    spawnedObject = hit.collider.gameObject;
+    //                }
+    //                else
+    //                {
+    //                    //SpawnPrefab(m_Hits[0].pose.position);
+    //                }
+    //            }
+
+    //        }
+    //        else if (Input.GetTouch(0).phase == TouchPhase.Moved && spawnedObject != null)
+    //        {
+    //            spawnedObject.transform.position = m_Hits[0].pose.position;
+    //        }
+    //        if (Input.GetTouch(0).phase == TouchPhase.Ended)
+    //        {
+    //            spawnedObject = null;
+    //        }
+    //    }
+    //}
+
+
+    #region DB methods
 
     public void GetMessagesFromDB()
     {
         if (GameManager.Instance.IsEditModeActive)
             return;
-
-        Debug.LogWarning("PRESSED F IN CHAT!");
 
         db.RootReference.Child("Messages").GetValueAsync().ContinueWithOnMainThread(task =>
         {
@@ -211,10 +252,15 @@ public class SpawnableManager : MonoBehaviour
 
                 var newLocation = SpawnNearby();
                 if (newLocation != null)
-                    locations.Add(new CustomLocation(location, newLocation, true));
+                {
+                    var worldObject = newLocation.GetComponent<MessageWorldObject>();
+                    Debug.LogError("Spawnable object have no MessageWorldObject component!");
+                    locations.Add(new CustomLocation(location, worldObject, true));
+                }
             }
         });
     }
+
 
     public void SaveMessageToDB()
     {
@@ -269,16 +315,7 @@ public class SpawnableManager : MonoBehaviour
         });
     }
 
-    GameObject SpawnNearby()
-    {
-        Debug.LogWarning("huh?!");
-        float randomDistance = URandom.Range(5f, 10f);
-        Vector3 randomPos = cam.transform.position.GetRandomPointOnHorizontalCircle(randomDistance);
-        GameObject newObject = Instantiate(spawnablePrefab, randomPos, Quaternion.identity);
-        spawnedObject = newObject;
-
-        return newObject;
-    }
+    #endregion
 
 
     private void OnDestroy()

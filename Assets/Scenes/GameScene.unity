@@ -629,7 +629,7 @@ MonoBehaviour:
   updateDistance: 50
   maxNewInstancedMessages: 10
   cam: {fileID: 1659315990}
-  spawnablePrefab: {fileID: 6633805003445379486, guid: 00cdd9560b912b843a6828df8709500f,
+  spawnablePrefab: {fileID: 627174076246866559, guid: 68916c6e9e4b2d34bb92ea14707713d5,
     type: 3}
   m_RaycastManager: {fileID: 959601015}
   message:
@@ -1260,7 +1260,7 @@ Camera:
   m_GameObject: {fileID: 1659315989}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
