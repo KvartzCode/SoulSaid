@@ -41,23 +41,20 @@ public class SpawnableManager : MonoBehaviour
     [SerializeField, Tooltip("How many new messages to spawn in close to device when conditions are met")]
     float maxNewInstancedMessages = 10;
 
-    [SerializeField] Camera cam;
-
     [SerializeField] GameObject spawnablePrefab;
-    [SerializeField] ARRaycastManager m_RaycastManager;
-    List<ARRaycastHit> m_Hits = new();
 
     List<CustomLocation> locations = new();
-    MessageWorldObject spawnedObject;
     LocationInfo lastLocationCheckpoint;
 
     //public MessageLocation message = new(); //only for testing purposes
 
     //[SerializeField, ReadOnly]
     //DBAPI db;
-    FirebaseDatabase db;
     [SerializeField] TMP_InputField inputField;
     [SerializeField] TMP_Text statusText;
+
+    FirebaseDatabase db;
+    Camera cam;
 
 
     private void Awake()
@@ -75,27 +72,13 @@ public class SpawnableManager : MonoBehaviour
 
     void Start()
     {
-        if (cam == null)
-            cam = Camera.main;
-
+        cam = Camera.main;
         db = FirebaseDatabase.DefaultInstance;
 
-        spawnedObject = null;
         LocationHandler.Instance.onLocationChanged += OnLocationChanged;
         StartCoroutine(WaitForFirstVerifiedLocation());
     }
 
-    void Update()
-    {
-        //ExampleSpawnMethod();
-
-        //if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
-        //    GetMessagesFromDB();
-        //db.SaveMessage("Messages", message);
-
-        if (Input.touchCount > 0)
-            CheckIfMessageWasSelected();
-    }
 
     IEnumerator WaitForFirstVerifiedLocation()
     {
@@ -115,7 +98,6 @@ public class SpawnableManager : MonoBehaviour
         GameManager.Instance.HandlerOrManagerStateChanged();
     }
 
-
     void OnLocationChanged(LocationInfo info)
     {
         if (GameManager.Instance.State != InstanceState.Running)
@@ -133,34 +115,6 @@ public class SpawnableManager : MonoBehaviour
         GetMessagesFromDB();
     }
 
-
-    void CheckIfMessageWasSelected()
-    {
-        if (spawnedObject == null && Input.touchCount == 0 && Input.GetTouch(0).phase != TouchPhase.Began)
-            return;
-
-        Ray ray = cam.ScreenPointToRay(Input.GetTouch(0).position);
-        Debug.DrawRay(cam.transform.position, ray.direction);
-
-        if (m_RaycastManager.Raycast(Input.GetTouch(0).position, m_Hits))
-        {
-            Debug.Log("ray hit something");
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                Debug.LogWarning("ray hit something specific!");
-                if (hit.collider.gameObject.CompareTag("Spawnable"))
-                {
-                    spawnedObject = hit.collider.GetComponent<MessageWorldObject>();
-                    spawnedObject.DisplayText();
-                }
-                else
-                {
-                    spawnedObject.HideText();
-                    spawnedObject = null;
-                }
-            }
-        }
-    }
 
     GameObject SpawnNearby()
     {

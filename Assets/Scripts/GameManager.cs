@@ -7,6 +7,7 @@ using Firebase.Auth;
 using Firebase.Extensions;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR.ARFoundation;
 
 public enum InstanceState
 {
@@ -27,6 +28,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] List<GameObject> gameModeUIElements = new List<GameObject>();
     [SerializeField] List<GameObject> editModeUIElements = new List<GameObject>();
 
+    [SerializeField] ARRaycastManager m_RaycastManager;
+
+    GameObject selectedObject;
+    List<ARRaycastHit> m_Hits = new();
+    Camera cam;
+
     FirebaseAuth auth;
 
 
@@ -41,6 +48,8 @@ public class GameManager : MonoBehaviour
         State = InstanceState.Initializing;
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        cam = Camera.main;
     }
 
     private void Start()
@@ -68,47 +77,19 @@ public class GameManager : MonoBehaviour
         editButton.onClick.AddListener(delegate { ToggleEditMode(); });
     }
 
-    #region DB methods
-
-    private void AnonymousSignIn()
+    void Update()
     {
-        auth.SignInAnonymouslyAsync().ContinueWithOnMainThread(task => {
-            if (task.Exception != null)
-            {
-                Debug.LogWarning(task.Exception);
-            }
-            else
-            {
-                SignedIn(task.Result);
-            }
-        });
+        //ExampleSpawnMethod();
+
+        //if (Input.GetKeyDown(KeyCode.F) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
+        //    GetMessagesFromDB();
+        //db.SaveMessage("Messages", message);
+
+        //if (Input.touchCount > 0)
+        //    CheckIfMessageWasSelected();
+        ExampleSpawnMethod();
     }
 
-    private void SignedIn(FirebaseUser newUser)
-    {
-        Debug.LogFormat("User signed in successfully: {0} ({1})",
-                    newUser.DisplayName, newUser.UserId);
-
-        //Display who logged in
-        if (newUser.DisplayName != "")
-            Debug.Log("Logged in as: " + newUser.DisplayName);
-        else if (newUser.Email != "")
-            Debug.Log("Logged in as: " + newUser.Email);
-        else
-            Debug.Log("Logged in as: Anonymous User " + newUser.UserId);
-
-        EnableEditButton();
-    }
-
-    #endregion
-
-    private void EnableEditButton()
-    {
-        if (auth.CurrentUser == null || State != InstanceState.Running)
-            return;
-
-        editButton.interactable = true;
-    }
 
     public void HandlerOrManagerStateChanged()
     {
@@ -143,6 +124,93 @@ public class GameManager : MonoBehaviour
         Debug.Log($"SpawnableManager = [{spawnableManagerState}] \nLocationHandler = [{locationHandlerState}]");
     }
 
+    //void CheckIfMessageWasSelected()
+    //{
+    //    if (selectedObject == null && Input.touchCount == 0 && Input.GetTouch(0).phase != TouchPhase.Began)
+    //        return;
+
+    //    Ray ray = cam.ScreenPointToRay(Input.GetTouch(0).position);
+    //    Debug.DrawRay(cam.transform.position, ray.direction);
+
+    //    if (m_RaycastManager.Raycast(Input.GetTouch(0).position, m_Hits))
+    //    {
+    //        Debug.Log("ray hit something");
+    //        if (Physics.Raycast(ray, out RaycastHit hit))
+    //        {
+    //            Debug.LogWarning("ray hit something specific!");
+    //            if (hit.collider.gameObject.CompareTag("Spawnable"))
+    //            {
+    //                selectedObject = hit.collider.GetComponent<MessageWorldObject>();
+    //                selectedObject.DisplayText();
+    //            }
+    //            else
+    //            {
+    //                selectedObject.HideText();
+    //                selectedObject = null;
+    //            }
+    //        }
+    //    }
+    //}
+
+    void ExampleSpawnMethod()
+    {
+        if (Input.touchCount == 0)
+            return;
+
+        Debug.LogWarning("Input.touchCount != 0");
+
+        RaycastHit hit;
+        Ray ray = cam.ScreenPointToRay(Input.GetTouch(0).position);
+
+        if (m_RaycastManager.Raycast(Input.GetTouch(0).position, m_Hits))
+        {
+            Debug.LogWarning("ray hit something");
+            if (Input.GetTouch(0).phase == TouchPhase.Began && selectedObject == null)
+            {
+                if (Physics.Raycast(ray, out hit))
+                {
+                    Debug.LogWarning("ray hit something specific!");
+                    if (hit.collider.gameObject.CompareTag("Spawnable"))
+                    {
+                        selectedObject = hit.collider.gameObject;
+                        selectedObject.GetComponent<MessageWorldObject>().DisplayText();
+                    }
+                    else
+                    {
+                        selectedObject.GetComponent<MessageWorldObject>().HideText();
+                        selectedObject = null;
+                        //SpawnPrefab(m_Hits[0].pose.position);
+                    }
+                }
+                else
+                {
+                    selectedObject.GetComponent<MessageWorldObject>().HideText();
+                    selectedObject = null;
+                }
+
+            }
+            else if (Input.GetTouch(0).phase == TouchPhase.Moved && selectedObject != null)
+            {
+                selectedObject.transform.position = m_Hits[0].pose.position;
+            }
+            if (Input.GetTouch(0).phase == TouchPhase.Ended)
+            {
+                selectedObject = null;
+            }
+        }
+    }
+
+
+    #region EditMode
+
+    private void EnableEditButton()
+    {
+        if (auth.CurrentUser == null || State != InstanceState.Running)
+            return;
+
+        editButton.interactable = true;
+    }
+
     private void ToggleEditMode()
     {
         IsEditModeActive = !IsEditModeActive;
@@ -172,4 +240,40 @@ public class GameManager : MonoBehaviour
             item.SetActive(true);
         }
     }
+
+    #endregion
+
+    #region DB methods
+
+    private void AnonymousSignIn()
+    {
+        auth.SignInAnonymouslyAsync().ContinueWithOnMainThread(task => {
+            if (task.Exception != null)
+            {
+                Debug.LogWarning(task.Exception);
+            }
+            else
+            {
+                SignedIn(task.Result);
+            }
+        });
+    }
+
+    private void SignedIn(FirebaseUser newUser)
+    {
+        Debug.LogFormat("User signed in successfully: {0} ({1})",
+                    newUser.DisplayName, newUser.UserId);
+
+        //Display who logged in
+        if (newUser.DisplayName != "")
+            Debug.Log("Logged in as: " + newUser.DisplayName);
+        else if (newUser.Email != "")
+            Debug.Log("Logged in as: " + newUser.Email);
+        else
+            Debug.Log("Logged in as: Anonymous User " + newUser.UserId);
+
+        EnableEditButton();
+    }
+
+    #endregion
 }
