@@ -41,4 +41,9 @@ public class MessageWorldObject : MonoBehaviour
     {
         canvas.SetActive(false);
     }
+
+    public void ToggleText()
+    {
+        canvas.SetActive(!canvas.activeSelf);
+    }
 }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Firebase;
 using Firebase.Auth;
 using Firebase.Extensions;
+using Newtonsoft.Json.Bson;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
@@ -173,11 +174,11 @@ public class GameManager : MonoBehaviour
                     if (hit.collider.gameObject.CompareTag("Spawnable"))
                     {
                         selectedObject = hit.collider.gameObject;
-                        selectedObject.GetComponent<MessageWorldObject>().DisplayText();
+                        selectedObject.GetComponent<MessageWorldObject>().ToggleText();
                     }
                     else
                     {
-                        selectedObject.GetComponent<MessageWorldObject>().HideText();
+                        //selectedObject.GetComponent<MessageWorldObject>().HideText();
                         selectedObject = null;
                         //SpawnPrefab(m_Hits[0].pose.position);
                     }
@@ -273,6 +274,11 @@ public class GameManager : MonoBehaviour
             Debug.Log("Logged in as: Anonymous User " + newUser.UserId);
 
         EnableEditButton();
+    }
+
+    private void SignOut()
+    {
+        auth.SignOut();
     }
 
     #endregion

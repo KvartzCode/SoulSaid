@@ -124,7 +124,11 @@ public class SpawnableManager : MonoBehaviour
         bool rayHit = Physics.Raycast(randomPos, Vector3.down, out RaycastHit hit);
         randomPos = rayHit ? hit.point : randomPos;
 
-        GameObject newObject = Instantiate(spawnablePrefab, randomPos, Quaternion.identity);
+        GameObject newObject = Instantiate(spawnablePrefab, randomPos, spawnablePrefab.transform.rotation);
+        newObject.transform.forward = Camera.main.transform.forward;
+        var test = newObject.transform.rotation;
+        test.x = 0;
+        newObject.transform.rotation = test;
         return newObject;
     }
 
@@ -191,11 +195,11 @@ public class SpawnableManager : MonoBehaviour
             {
                 MessageLocation message = JsonUtility.FromJson<MessageLocation>(item.GetRawJsonValue());
 
-                if (lastLocationCheckpoint.CalculateDistance(message.Latitude, message.Longitude) > detectionDistance)
+                if (lastLocationCheckpoint.CalculateDistance(message.Latitude, message.Longitude) < detectionDistance)
                 {
                     nearbyLocations.Add(message);
 
-                    if (nearbyLocations.Count < maxNewInstancedMessages)
+                    if (nearbyLocations.Count >= maxNewInstancedMessages)
                         break;
                 }
             }
@@ -215,6 +219,7 @@ public class SpawnableManager : MonoBehaviour
                     if (worldObject == null)
                         Debug.LogError("Spawnable object have no MessageWorldObject component!");
 
+                    worldObject.Initialize(location.UserID, location.Text, location.DateCreated);
                     locations.Add(new CustomLocation(location, worldObject, true));
                 }
             }
